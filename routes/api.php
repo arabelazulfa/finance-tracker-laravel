@@ -11,3 +11,6 @@ Route::get('/user', function (Request $request) {
 Route::get('/transactions', [TransactionController::class, 'index']);
 Route::post('/transactions', [TransactionController::class, 'store']);
 Route::delete('/transactions/{id}', [TransactionController::class,'destroy']);
+
+Route::get('/summary', [TransactionController::class,'summary']);
+Route::get('/report/monthly', [TransactionController::class,'monthlyReport']);
