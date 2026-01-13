@@ -1,11 +1,49 @@
 import React from 'react';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 
 export default function Index({ transactions, filters, summary, monthlyReport }) {
+
+    // 1. Inisialisasi Hook Form untuk menangkap input user
+    const { data, setData, post, processing, errors, reset } = useForm({
+        description: '',
+        amount: '',
+        type: 'income',
+    });
+
+    // 2. Fungsi untuk mengirim data ke Laravel
+    const submit = (e) => {
+        e.preventDefault();
+        post('/transactions', {
+            onSuccess: () => reset(), // Form kosong lagi setelah berhasil simpan
+        });
+    };
+
+    const handleDelete = (id) => {
+        // Cek di console apakah ID benar-benar masuk saat tombol diklik
+        console.log("ID yang akan dihapus:", id);
+
+        if (!id) {
+            alert("ID tidak terbaca!");
+            return;
+        }
+
+        if (confirm(`Yakin ingin menghapus transaksi dengan ID ${id}?`)) {
+            // PERHATIKAN: Gunakan backtick ( ` ) bukan ( ' ) atau ( " )
+            router.delete(`/transactions/${id}`, {
+                onSuccess: () => {
+                    alert("Berhasil dihapus");
+                },
+                onError: (err) => {
+                    console.error("Gagal hapus:", err);
+                }
+            });
+        }
+    };
+
     return (
         <div style={{ fontFamily: 'sans-serif', padding: '40px', backgroundColor: '#f4f4f9', minHeight: '100vh' }}>
             <Head title="Financial Tracking" />
-            
+
             <div style={{ maxWidth: '900px', margin: '0 auto' }}>
                 <h1 style={{ color: '#333', textAlign: 'center' }}>My Financial Tracking</h1>
 
@@ -27,8 +65,55 @@ export default function Index({ transactions, filters, summary, monthlyReport })
                     </div>
                 </div>
 
+                {/* --- 3. FORM INPUT BARU --- */}
+                <div style={{ ...whiteBox, marginBottom: '30px' }}>
+                    <h3 style={{ marginTop: 0 }}>Tambah Transaksi Baru</h3>
+                    <form onSubmit={submit} style={{ display: 'flex', gap: '15px', alignItems: 'flex-start' }}>
+                        <div style={{ flex: 2 }}>
+                            <input
+                                type="text"
+                                placeholder="Deskripsi (ex: Gaji, Jajan)"
+                                value={data.description}
+                                onChange={e => setData('description', e.target.value)}
+                                style={inputStyle}
+                            />
+                            {errors.description && <div style={errorText}>{errors.description}</div>}
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                            <input
+                                type="number"
+                                placeholder="Jumlah (Rp)"
+                                value={data.amount}
+                                onChange={e => setData('amount', e.target.value)}
+                                style={inputStyle}
+                            />
+                            {errors.amount && <div style={errorText}>{errors.amount}</div>}
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                            <select
+                                value={data.type}
+                                onChange={e => setData('type', e.target.value)}
+                                style={inputStyle}
+                            >
+                                <option value="income">Pemasukan</option>
+                                <option value="expense">Pengeluaran</option>
+                            </select>
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            style={submitBtnStyle}
+                        >
+                            {processing ? '...' : 'Simpan'}
+                        </button>
+                    </form>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
-                    
+
                     {/* --- TABEL TRANSAKSI --- */}
                     <div style={whiteBox}>
                         <h3>Riwayat Transaksi</h3>
@@ -49,7 +134,7 @@ export default function Index({ transactions, filters, summary, monthlyReport })
                                 {transactions.map((t) => (
                                     <tr key={t.id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px' }}>
-                                            {t.description} <br />
+                                            {/* <b style={{color: 'red'}}>ID: {t.id}</b> | {t.description} <br /> */}
                                             <small style={{ color: '#888' }}>{t.type === 'income' ? '🟢 Pemasukan' : '🔴 Pengeluaran'}</small>
                                         </td>
                                         <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: t.type === 'income' ? '#2ecc71' : '#e74c3c' }}>
@@ -83,29 +168,10 @@ export default function Index({ transactions, filters, summary, monthlyReport })
     );
 }
 
-// Tambahan Styles
-const whiteBox = {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
-};
-
-const cardStyle = (bgColor) => ({
-    backgroundColor: bgColor,
-    padding: '15px',
-    borderRadius: '12px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-    textAlign: 'center'
-});
-
-const btnStyle = (isActive) => ({
-    marginRight: '8px',
-    padding: '6px 12px',
-    textDecoration: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    backgroundColor: isActive ? '#3498db' : '#f0f0f0',
-    color: isActive ? 'white' : '#555',
-    transition: '0.3s'
-});
+// --- Tambahan Styles (Masukkan ini agar tidak error) ---
+const whiteBox = { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' };
+const cardStyle = (bgColor) => ({ backgroundColor: bgColor, padding: '15px', borderRadius: '12px', textAlign: 'center' });
+const btnStyle = (isActive) => ({ marginRight: '8px', padding: '6px 12px', textDecoration: 'none', borderRadius: '6px', fontSize: '13px', backgroundColor: isActive ? '#3498db' : '#f0f0f0', color: isActive ? 'white' : '#555' });
+const inputStyle = { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' };
+const submitBtnStyle = { padding: '10px 20px', backgroundColor: '#2ecc71', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' };
+const errorText = { color: '#e74c3c', fontSize: '12px', marginTop: '5px' };
